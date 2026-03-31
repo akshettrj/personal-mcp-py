@@ -43,14 +43,15 @@ def add_id3_title(filepath: str, title: str | None) -> str:
 
 
 @MCP_SERVER.tool()
-def set_id3_artist(filepath: str, artist: str | None) -> str:
-    """Set or remove the ID3 artist (`TPE1`) tag for a local audio file."""
+def set_id3_artist(filepath: str, artists: list[str] | None) -> str:
+    """Set or remove the ID3 artists (`TPE1`) tag for a local audio file."""
     path, tags = _load_id3(filepath)
 
-    if artist is None or artist == "":
+    if not artists:
         tags.delall("TPE1")
     else:
-        tags.setall("TPE1", [TPE1(encoding=3, text=artist)])
+        # Pass the list of artists directly to TPE1
+        tags.setall("TPE1", [TPE1(encoding=3, text=artists)])
 
     tags.save(path)
     return f"Updated artist tag for {path}"
@@ -126,18 +127,22 @@ def set_id3_links(filepath: str, links: dict[str, str] | None) -> str:
 
 
 @MCP_SERVER.tool()
-def read_id3_tags(filepath: str) -> dict[str, str | None]:
+def read_id3_tags(filepath: str) -> dict[str, str | list[str] | None]:
     """Read common ID3 fields and summarize title, artist, album, year, links, and artwork state."""
     path, tags = _load_id3(filepath)
 
-    def _first_text(frame_id: str) -> str | None:
+    def _get_text(frame_id: str) -> list[str] | None:
         frame = tags.get(frame_id)
         if frame is None:
             return None
         text = getattr(frame, "text", None)
         if not text:
             return None
-        return str(text[0])
+        return [str(t) for t in text]
+
+    def _first_text(frame_id: str) -> str | None:
+        text_list = _get_text(frame_id)
+        return text_list[0] if text_list else None
 
     links_frame = tags.get("TXXX:Links")
     links = None
@@ -147,7 +152,7 @@ def read_id3_tags(filepath: str) -> dict[str, str | None]:
     return {
         "filepath": str(path),
         "title": _first_text("TIT2"),
-        "artist": _first_text("TPE1"),
+        "artist": _get_text("TPE1"),
         "album": _first_text("TALB"),
         "year": _first_text("TDRC"),
         "links": links,

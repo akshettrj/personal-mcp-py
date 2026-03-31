@@ -44,6 +44,15 @@ def get_music_metadata(url: str) -> dict:
                     "error": "Could not fetch metadata for this URL. It might be private, restricted, or deleted."
                 }
 
+            # Handle playlist vs single video
+            if "entries" in info:
+                return {
+                    "type": "playlist",
+                    "title": info.get("title"),
+                    "video_count": len(info.get("entries", [])),
+                    "uploader": info.get("uploader"),
+                }
+
             formats = [
                 {
                     "format_id": f.get("format_id"),
@@ -56,6 +65,7 @@ def get_music_metadata(url: str) -> dict:
             ]
 
             return {
+                "type": "video",
                 "title": info.get("title"),
                 "uploader": info.get("uploader"),
                 "duration": info.get("duration"),
@@ -74,8 +84,63 @@ def get_music_metadata(url: str) -> dict:
 
 
 @MCP_SERVER.tool()
+def get_playlist_metadata(url: str) -> dict:
+    """
+    Fetch a list of all songs in a playlist with their metadata using flat-playlist extraction.
+
+    Args:
+        url: The YouTube playlist URL.
+    """
+    args = [
+        "--cookies-from-browser",
+        "brave::Personal",
+        "--flat-playlist",
+        "--dump-single-json",
+        "--quiet",
+        "--no-warnings",
+        url,
+    ]
+
+    ydl_opts = get_ydl_opts(args)
+    ydl_opts["quiet"] = True
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            if info is None:
+                return {"error": "Could not fetch playlist metadata."}
+
+            entries = []
+            for entry in info.get("entries", []):
+                if not entry:
+                    continue
+                entries.append(
+                    {
+                        "id": entry.get("id"),
+                        "title": entry.get("title"),
+                        "url": entry.get("url")
+                        or f"https://www.youtube.com/watch?v={entry.get('id')}",
+                        "duration": entry.get("duration"),
+                        "duration_string": entry.get("duration_string"),
+                        "uploader": entry.get("uploader"),
+                        "playlist_index": entry.get("playlist_index"),
+                    }
+                )
+
+            return {
+                "playlist_title": info.get("title"),
+                "playlist_id": info.get("id"),
+                "uploader": info.get("uploader"),
+                "entries_count": len(entries),
+                "entries": entries,
+            }
+    except Exception as e:
+        return {"error": f"An unexpected error occurred: {str(e)}"}
+
+
+@MCP_SERVER.tool()
 def download_music(
-    url: str, output_dir: str = "~/Downloads", quality: str = "320"
+    url: str, output_dir: str = "~/Downloads", quality: str = "320", noplaylist: bool = False
 ) -> str:
     """
     Download music from YouTube using yt-dlp.
@@ -85,6 +150,7 @@ def download_music(
         url: The YouTube URL to download from.
         output_dir: The directory to save the downloaded file. Defaults to ~/Downloads.
         quality: The preferred quality for audio extraction (e.g., "320", "192", "128"). Defaults to "320".
+        noplaylist: Whether to only download a single video even if the URL contains a playlist. Defaults to False.
     """
     expanded_dir = os.path.expanduser(output_dir)
     os.makedirs(expanded_dir, exist_ok=True)
@@ -109,6 +175,11 @@ def download_music(
         url,
     ]
 
+    if noplaylist:
+        args.append("--no-playlist")
+    else:
+        args.append("--yes-playlist")
+
     ydl_opts = get_ydl_opts(args)
     ydl_opts["quiet"] = True
 
@@ -116,8 +187,13 @@ def download_music(
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             if info is None:
-                return f"Error downloading music: Could not find audio for this URL."
+                return f"Error downloading: Could not find content for this URL."
+
+            if "entries" in info:
+                count = len(info["entries"])
+                return f"Successfully downloaded playlist '{info.get('title')}' ({count} items) to {expanded_dir}"
+
             title = info.get("title", "Unknown Title")
             return f"Successfully downloaded: {title} (Quality: {quality}kbps) to {expanded_dir}"
     except Exception as e:
-        return f"Error downloading music: {str(e)}"
+        return f"Error downloading: {str(e)}"

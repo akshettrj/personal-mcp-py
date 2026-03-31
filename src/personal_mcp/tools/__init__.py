@@ -7,4 +7,4 @@ from .mutagen import (
     set_id3_thumbnail,
     set_id3_year,
 )
-from .youtube import download_music, get_music_metadata
+from .youtube import download_music, get_music_metadata, get_playlist_metadata
