@@ -1,9 +1,8 @@
 import json
 from pathlib import Path
 
-from mutagen.id3 import APIC, ID3, ID3NoHeaderError, TALB, TDRC, TIT2, TPE1, TXXX
-
-from src.server import MCP_SERVER
+from mutagen.id3 import APIC, ID3, TALB, TDRC, TIT2, TPE1, TXXX, ID3NoHeaderError
+from personal_mcp import MCP_SERVER
 
 
 def _load_id3(filepath: str) -> tuple[Path, ID3]:
@@ -86,14 +85,18 @@ def set_id3_year(filepath: str, year: str | None) -> str:
 
 
 @MCP_SERVER.tool()
-def set_id3_thumbnail(filepath: str, image_path: str, mime_type: str = "image/jpeg") -> str:
+def set_id3_thumbnail(
+    filepath: str, image_path: str, mime_type: str = "image/jpeg"
+) -> str:
     """Embed a cover image into the file by replacing existing `APIC` thumbnail frames."""
     path, tags = _load_id3(filepath)
     cover_path = Path(image_path).expanduser().resolve()
     if not cover_path.exists():
         raise FileNotFoundError(f"Image not found: {cover_path}")
     if not cover_path.is_file():
-        raise IsADirectoryError(f"Expected an image file path, got directory: {cover_path}")
+        raise IsADirectoryError(
+            f"Expected an image file path, got directory: {cover_path}"
+        )
 
     image_data = cover_path.read_bytes()
     tags.delall("APIC")
