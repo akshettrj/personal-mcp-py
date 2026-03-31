@@ -707,21 +707,27 @@ wheels = [
 [[package]]
 name = "personal-mcp"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
     { name = "mutagen" },
-    { name = "pyrefly" },
     { name = "yt-dlp", extra = ["default"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pyrefly" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastmcp", specifier = ">=3.1.1" },
     { name = "mutagen", specifier = ">=1.47.0" },
-    { name = "pyrefly", specifier = ">=0.58.0" },
     { name = "yt-dlp", extras = ["default"], specifier = ">=2026.3.17" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pyrefly", specifier = ">=0.58.0" }]
 
 [[package]]
 name = "platformdirs"

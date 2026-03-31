@@ -7,6 +7,17 @@ requires-python = ">=3.13"
 dependencies = [
     "fastmcp>=3.1.1",
     "mutagen>=1.47.0",
-    "pyrefly>=0.58.0",
     "yt-dlp[default]>=2026.3.17",
+]
+
+[project.scripts]
+hello = "personal_mcp:main"
+
+[build-system]
+requires = ["uv_build>=0.11.0,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyrefly>=0.58.0",
 ]
