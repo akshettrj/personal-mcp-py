@@ -3,13 +3,13 @@ name: music-manager
 description: Downloads and Tags new music files using yt-dlp, FFmpeg, and ID3 tools. Use this skill when the user provides a music URL (YouTube/SoundCloud) and wants a high-quality MP3 with proper metadata and artwork.
 ---
 <MUSIC_MANAGER_SKILL>
-When provided with a music URL (e.g. from YouTube), download the music file using the tools provided in the `personal-mcp-py` MCP server and tag it appropriately.
+When provided with a music URL (e.g. from YouTube), download the music file using the tools provided in the `personal-py` MCP server and tag it appropriately.
 
 ### Workflow
 1.  **Inspect**: Use `get_music_metadata` (for single tracks) or `get_playlist_metadata` (for playlists) to retrieve the title, uploader, and structure of the content.
 2.  **Download & Convert**: Use the `download_music` tool. This tool autonomously handles the download of the best audio format, manual conversion to high-quality MP3 (320kbps) via FFmpeg, and initial tagging (Title, Uploader as Artist, and Thumbnail).
 3.  **Refine Metadata**: Use a web search to find the official Artist(s), Album, and Year.
-4.  **Final Tagging**: Use the ID3 tagging tools to apply the refined metadata. 
+4.  **Final Tagging**: Use the ID3 tagging tools to apply the refined metadata.
     - **Note**: `set_id3_artist` now accepts a **list of strings** to support multiple artists.
     - Always add the `link` tag (using `set_id3_links`) to store the original URL.
     - **Note**: Do not parallelize the ID3 tag tools to prevent file lock issues.
