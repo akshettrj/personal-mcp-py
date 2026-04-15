@@ -1,7 +1,10 @@
 import os
+import subprocess
+from pathlib import Path
 
 import yt_dlp
 from personal_mcp import MCP_SERVER
+from .mutagen import add_id3_title, set_id3_artist, set_id3_thumbnail
 
 
 def get_ydl_opts(args: list[str]) -> dict:
@@ -138,36 +141,81 @@ def get_playlist_metadata(url: str) -> dict:
         return {"error": f"An unexpected error occurred: {str(e)}"}
 
 
+def _process_downloaded_file(info: dict, source_path: str) -> str:
+    """Helper to convert a single file to MP3 and apply metadata."""
+    target_path = str(Path(source_path).with_suffix(".mp3"))
+    
+    # Use ffmpeg to convert to MP3 with best quality (320k or -q:a 0)
+    # We use -q:a 0 for best VBR or -b:a 320k for best CBR. 
+    cmd = [
+        "ffmpeg", "-i", source_path,
+        "-codec:a", "libmp3lame",
+        "-b:a", "320k",
+        "-map", "0:a", # Only map audio for the actual audio stream
+        "-y", # overwrite
+        target_path
+    ]
+    
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        return f"ffmpeg error for {source_path}: {e.stderr.decode()}"
+        
+    # Apply metadata using mutagen tools
+    title = info.get("title")
+    uploader = info.get("uploader")
+    
+    if title:
+        add_id3_title(target_path, title)
+    if uploader:
+        set_id3_artist(target_path, [uploader])
+        
+    # Handle thumbnail
+    # Since we used --embed-thumbnail, yt-dlp might have downloaded it.
+    # We'll check for the thumbnail file.
+    base_path = os.path.splitext(source_path)[0]
+    for ext in [".jpg", ".png", ".webp", ".jpeg"]:
+        thumb_path = base_path + ext
+        if os.path.exists(thumb_path):
+            try:
+                set_id3_thumbnail(target_path, thumb_path)
+                os.remove(thumb_path)
+                break
+            except:
+                pass
+
+    # Clean up original file
+    if os.path.exists(source_path) and source_path != target_path:
+        os.remove(source_path)
+        
+    return target_path
+
+
 @MCP_SERVER.tool()
 def download_music(
-    url: str, output_dir: str = "~/Downloads", quality: str = "320", noplaylist: bool = False
+    url: str, output_dir: str = "~/Downloads", noplaylist: bool = False
 ) -> str:
     """
-    Download music from YouTube using yt-dlp.
-    Uses the same logic as the CLI to ensure consistency.
+    Download music from YouTube using yt-dlp and manually convert to MP3.
+    Always selects the best available quality.
 
     Args:
         url: The YouTube URL to download from.
         output_dir: The directory to save the downloaded file. Defaults to ~/Downloads.
-        quality: The preferred quality for audio extraction (e.g., "320", "192", "128"). Defaults to "320".
         noplaylist: Whether to only download a single video even if the URL contains a playlist. Defaults to False.
     """
     expanded_dir = os.path.expanduser(output_dir)
     os.makedirs(expanded_dir, exist_ok=True)
 
-    # Simulate CLI arguments for downloading
+    # Download best audio and embed thumbnail (yt-dlp will also keep the thumb file if requested,
+    # or we can use --write-thumbnail to be sure we have a file to embed into the MP3 later)
     args = [
         "--cookies-from-browser",
         "brave::Personal",
         "--format",
         "bestaudio",
-        "--extract-audio",
-        "--audio-format",
-        "mp3",
-        "--audio-quality",
-        quality,
         "--embed-thumbnail",
-        "--add-metadata",
+        "--write-thumbnail",
         "--output",
         os.path.join(expanded_dir, "%(title)s.%(ext)s"),
         "--quiet",
@@ -190,10 +238,18 @@ def download_music(
                 return f"Error downloading: Could not find content for this URL."
 
             if "entries" in info:
-                count = len(info["entries"])
-                return f"Successfully downloaded playlist '{info.get('title')}' ({count} items) to {expanded_dir}"
+                results = []
+                for entry in info["entries"]:
+                    if not entry:
+                        continue
+                    source_path = ydl.prepare_filename(entry)
+                    res = _process_downloaded_file(entry, source_path)
+                    results.append(res)
+                return f"Successfully downloaded and converted playlist '{info.get('title')}' ({len(results)} items) to {expanded_dir}"
 
+            source_path = ydl.prepare_filename(info)
+            _process_downloaded_file(info, source_path)
             title = info.get("title", "Unknown Title")
-            return f"Successfully downloaded: {title} (Quality: {quality}kbps) to {expanded_dir}"
+            return f"Successfully downloaded and converted: {title} to {expanded_dir}"
     except Exception as e:
-        return f"Error downloading: {str(e)}"
+        return f"Error: {str(e)}"
