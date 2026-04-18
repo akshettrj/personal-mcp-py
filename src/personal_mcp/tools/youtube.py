@@ -144,9 +144,9 @@ def get_playlist_metadata(url: str) -> dict:
 def _process_downloaded_file(info: dict, source_path: str) -> str:
     """Helper to convert a single file to MP3 and apply metadata."""
     target_path = str(Path(source_path).with_suffix(".mp3"))
-    
+
     # Use ffmpeg to convert to MP3 with best quality (320k or -q:a 0)
-    # We use -q:a 0 for best VBR or -b:a 320k for best CBR. 
+    # We use -q:a 0 for best VBR or -b:a 320k for best CBR.
     cmd = [
         "ffmpeg", "-i", source_path,
         "-codec:a", "libmp3lame",
@@ -155,21 +155,21 @@ def _process_downloaded_file(info: dict, source_path: str) -> str:
         "-y", # overwrite
         target_path
     ]
-    
+
     try:
         subprocess.run(cmd, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         return f"ffmpeg error for {source_path}: {e.stderr.decode()}"
-        
+
     # Apply metadata using mutagen tools
     title = info.get("title")
     uploader = info.get("uploader")
-    
+
     if title:
         add_id3_title(target_path, title)
     if uploader:
         set_id3_artist(target_path, [uploader])
-        
+
     # Handle thumbnail
     # Since we used --embed-thumbnail, yt-dlp might have downloaded it.
     # We'll check for the thumbnail file.
@@ -187,7 +187,7 @@ def _process_downloaded_file(info: dict, source_path: str) -> str:
     # Clean up original file
     if os.path.exists(source_path) and source_path != target_path:
         os.remove(source_path)
-        
+
     return target_path
 
 
@@ -214,7 +214,6 @@ def download_music(
         "brave::Personal",
         "--format",
         "bestaudio",
-        "--embed-thumbnail",
         "--write-thumbnail",
         "--output",
         os.path.join(expanded_dir, "%(title)s.%(ext)s"),
