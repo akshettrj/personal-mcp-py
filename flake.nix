@@ -94,5 +94,9 @@
         package = pythonSet.personal-mcp;
       };
     });
+
+    skills = {
+        music-manager = ./skills/music-manager;
+    };
   };
 }
