@@ -12,8 +12,8 @@ When provided with a music URL (e.g. from YouTube), download the music file usin
 4.  **Final Tagging**: Use the ID3 tagging tools to apply the refined metadata.
     - **Note**: `set_id3_artist` now accepts a **list of strings** to support multiple artists.
     - Always add the `link` tag (using `set_id3_links`) to store the original URL.
-    - **Note**: Do not parallelize the ID3 tag tools to prevent file lock issues.
-5.  **Rename**: The final file name should be just the `Title.mp3`.
+    - **Note**: Do not parallelize the ID3 tag tools for a single file to prevent file lock issues. They can be parallelized for different music files.
+5.  **Rename**: The final file name should be just the `Title.{extension}`.
 
 ### Guidelines
 - **Playlists**: If a playlist URL is provided, use `get_playlist_metadata` first. Compare the entries with the files already present in your target directory and only download the missing ones (you can call `download_music` with `noplaylist=True` in a loop for each missing song).
