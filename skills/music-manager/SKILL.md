@@ -8,12 +8,13 @@ When provided with a music URL (e.g. from YouTube), download the music file usin
 ### Workflow
 1.  **Inspect**: Use `get_music_metadata` (for single tracks) or `get_playlist_metadata` (for playlists) to retrieve the title, uploader, and structure of the content.
 2.  **Download & Convert**: Use the `download_music` tool. This tool autonomously handles the download of the best audio format, manual conversion to high-quality MP3 (320kbps) via FFmpeg, and initial tagging (Title, Uploader as Artist, and Thumbnail).
-3.  **Refine Metadata**: Use a web search to find the official Artist(s), Album, and Year.
-4.  **Final Tagging**: Use `set_id3_tags` once per file to apply the refined title, artists, album, and year metadata.
+3.  **Resolve Links**: Use `odesli_get_by_url` for each track URL to retrieve the song.link/album.link page and cross-platform links. Use `odesli_get_by_id` when you already have a platform entity ID instead of a URL.
+4.  **Refine Metadata**: Prefer the Odesli requested entity and provider entities for title, artist, artwork, and platform links. If Odesli does not find the track, returns sparse/inaccurate tags, or the recording is hard to disambiguate, use web search tools to find the best available official Artist(s), Album, and Year.
+5.  **Final Tagging**: Use `set_id3_tags` once per file to apply the refined title, artists, album, and year metadata.
     - Pass `artists` as a **list of strings** to support multiple artists.
-    - Always add the original URL with `set_id3_links`; it merges with existing stored links, so only pass the new platform key/value (for example, `{"youtube": "<url>"}`) instead of rebuilding the whole Links dictionary.
+    - Store platform links with `set_id3_links`; it merges with existing stored links, so pass only the new links you found, such as Odesli `links_by_platform` entries plus the original source URL if missing.
     - **Note**: Do not parallelize the ID3 tag tools for a single file to prevent file lock issues. They can be parallelized for different music files.
-5.  **Rename**: The final file name should be just the `Title.{extension}`.
+6.  **Rename**: The final file name should be just the `Title.{extension}`.
 
 ### Guidelines
 - **Playlists**: If a playlist URL is provided, use `get_playlist_metadata` first. Compare the entries with the files already present in your target directory and only download the missing ones (you can call `download_music` with `noplaylist=True` in a loop for each missing song).
@@ -25,6 +26,7 @@ When provided with a music URL (e.g. from YouTube), download the music file usin
 If the song is a classical performance (e.g., Ustad Nusrat Fateh Ali Khan's qawwali):
 - Omit the album tag unless downloading a full performance/show playlist.
 - For full show playlists, the album name should be: `[Location] ([Year])` if available.
-- Rely on the metadata provided in the video title/description more than general web searches, as many different versions of these performances exist.
+- Use web search tools when Odesli cannot identify the recording or returns unrelated commercial releases.
+- Rely on the metadata provided in the video title/description and credible web sources more than generic platform matches, as many different versions of these performances exist.
 <CLASSICAL/>
 </MUSIC_MANAGER_SKILL>
