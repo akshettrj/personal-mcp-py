@@ -5,4 +5,5 @@ from .mutagen import (
     set_id3_links,
     set_id3_thumbnail,
 )
+from .odesli import odesli_get_by_id, odesli_get_by_url
 from .youtube import download_music, get_music_metadata, get_playlist_metadata
