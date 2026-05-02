@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from mutagen.id3 import APIC, ID3, TALB, TDRC, TIT2, TPE1, TXXX, ID3NoHeaderError
+
 from personal_mcp import MCP_SERVER
 
 
@@ -28,61 +29,130 @@ def _set_txxx_links(tags: ID3, links: dict[str, str] | None) -> None:
     tags.add(TXXX(encoding=3, desc="Links", text=[json.dumps(links)]))
 
 
-@MCP_SERVER.tool()
-def add_id3_title(filepath: str, title: str | None) -> str:
-    """Set or remove the ID3 title (`TIT2`) tag for a local audio file."""
-    path, tags = _load_id3(filepath)
+def _get_txxx_links(tags: ID3) -> dict[str, str]:
+    links_frame = tags.get("TXXX:Links")
+    if links_frame is None or not getattr(links_frame, "text", None):
+        return {}
 
+    links = json.loads(str(links_frame.text[0]))
+    if not isinstance(links, dict):
+        raise ValueError("Expected TXXX:Links to contain a JSON object")
+
+    return links
+
+
+def _handle_id3_title(tags: ID3, title: str | None):
     if title is None or title == "":
         tags.delall("TIT2")
     else:
         tags.setall("TIT2", [TIT2(encoding=3, text=title)])
 
-    tags.save(path)
-    return f"Updated title tag for {path}"
 
-
-@MCP_SERVER.tool()
-def set_id3_artist(filepath: str, artists: list[str] | None) -> str:
-    """Set or remove the ID3 artists (`TPE1`) tag for a local audio file."""
-    path, tags = _load_id3(filepath)
-
+def _handle_id3_artists(tags: ID3, artists: list[str] | None):
     if not artists:
         tags.delall("TPE1")
     else:
-        # Pass the list of artists directly to TPE1
         tags.setall("TPE1", [TPE1(encoding=3, text=artists)])
 
-    tags.save(path)
-    return f"Updated artist tag for {path}"
 
-
-@MCP_SERVER.tool()
-def set_id3_album(filepath: str, album: str | None) -> str:
-    """Set or remove the ID3 album (`TALB`) tag for a local audio file."""
-    path, tags = _load_id3(filepath)
-
+def _handle_id3_album(tags: ID3, album: str | None):
     if album is None or album == "":
         tags.delall("TALB")
     else:
         tags.setall("TALB", [TALB(encoding=3, text=album)])
 
-    tags.save(path)
-    return f"Updated album tag for {path}"
 
-
-@MCP_SERVER.tool()
-def set_id3_year(filepath: str, year: str | None) -> str:
-    """Set or remove the ID3 recording date/year (`TDRC`) tag for a local audio file."""
-    path, tags = _load_id3(filepath)
-
+def _handle_id3_year(tags: ID3, year: str | None):
     if year is None or year == "":
         tags.delall("TDRC")
     else:
         tags.setall("TDRC", [TDRC(encoding=3, text=year)])
 
+
+@MCP_SERVER.tool()
+def set_id3_tags(
+    filepath: str,
+    title: str | None,
+    artists: list[str] | None,
+    album: str | None,
+    year: str | None,
+) -> str:
+    """
+    Sets the ID3 tags corresponding to the non-null given inputs
+    for a local audio file.
+
+    - title: TIT2 tag
+    - artists: TPE1 tag
+    - album: TALB tag
+    - year: TDRC tag
+
+    If any input is passed as null (or falsy value), then it will not
+    be modified.
+    """
+    path, tags = _load_id3(filepath)
+
+    modified_tags = []
+
+    if title:
+        modified_tags.append("title")
+        _handle_id3_title(tags, title)
+
+    if artists:
+        modified_tags.append("artists")
+        _handle_id3_artists(tags, artists)
+
+    if album:
+        modified_tags.append("album")
+        _handle_id3_album(tags, album)
+
+    if year:
+        modified_tags.append("year")
+        _handle_id3_year(tags, year)
+
     tags.save(path)
-    return f"Updated year tag for {path}"
+
+    return f"Modified Fields: {','.join(modified_tags)}"
+
+
+@MCP_SERVER.tool()
+def unset_id3_tags(
+    filepath: str,
+    title: bool,
+    artists: bool,
+    album: bool,
+    year: bool,
+) -> str:
+    """
+    Deletes the tags which are passed as `true` in the inputs for a local audio file.
+
+    - title: TIT2 tag
+    - artists: TPE1 tag
+    - album: TALB tag
+    - year: TDRC tag
+    """
+    path, tags = _load_id3(filepath)
+
+    deleted_tags = []
+
+    if title:
+        deleted_tags.append("title")
+        _handle_id3_title(tags, None)
+
+    if artists:
+        deleted_tags.append("artists")
+        _handle_id3_artists(tags, None)
+
+    if album:
+        deleted_tags.append("album")
+        _handle_id3_album(tags, None)
+
+    if year:
+        deleted_tags.append("year")
+        _handle_id3_year(tags, None)
+
+    tags.save(path)
+
+    return f"Deleted Fields: {','.join(deleted_tags)}"
 
 
 @MCP_SERVER.tool()
@@ -121,7 +191,8 @@ def set_id3_links(filepath: str, links: dict[str, str] | None) -> str:
     The platform (key in links dictionary) should be lowercase
     """
     path, tags = _load_id3(filepath)
-    _set_txxx_links(tags, links)
+    merged_links = None if links is None else {**_get_txxx_links(tags), **links}
+    _set_txxx_links(tags, merged_links)
     tags.save(path)
     return f"Updated TXXX:Links tag for {path}"
 

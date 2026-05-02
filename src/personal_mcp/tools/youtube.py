@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yt_dlp
 from personal_mcp import MCP_SERVER
-from .mutagen import add_id3_title, set_id3_artist, set_id3_thumbnail
+from .mutagen import set_id3_thumbnail
 
 
 def get_ydl_opts(args: list[str]) -> dict:
@@ -160,15 +160,6 @@ def _process_downloaded_file(info: dict, source_path: str) -> str:
         subprocess.run(cmd, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         return f"ffmpeg error for {source_path}: {e.stderr.decode()}"
-
-    # Apply metadata using mutagen tools
-    title = info.get("title")
-    uploader = info.get("uploader")
-
-    if title:
-        add_id3_title(target_path, title)
-    if uploader:
-        set_id3_artist(target_path, [uploader])
 
     # Handle thumbnail
     # Since we used --embed-thumbnail, yt-dlp might have downloaded it.

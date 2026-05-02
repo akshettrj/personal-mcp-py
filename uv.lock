@@ -615,6 +615,18 @@ wheels = [
 ]
 
 [[package]]
+name = "odesli"
+version = "0.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/39/70/801352d05764331d75bd9fca7a5c6f6c9be58530d82166587005131307b3/odesli-0.0.2.tar.gz", hash = "sha256:4bfdf3c8bc00d5d4e735f4b8c553adf0be3734326dff9835b9cee06ec571bc34", size = 5626, upload-time = "2021-10-16T17:01:14.229Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/e6/fa9b4c58cd102b92a835a3fe24be8072896e08050d3a2421d9607a4f3424/odesli-0.0.2-py3-none-any.whl", hash = "sha256:5d0a9fc9d922bf5ac7060654900b761049be3a3ea4dcbe435836c38e9822f97d", size = 7459, upload-time = "2021-10-16T17:01:11.674Z" },
+]
+
+[[package]]
 name = "openapi-pydantic"
 version = "0.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -671,8 +683,10 @@ name = "personal-mcp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "black" },
     { name = "fastmcp" },
     { name = "mutagen" },
+    { name = "odesli" },
     { name = "yt-dlp", extra = ["default"] },
 ]
 
@@ -685,8 +699,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "black", specifier = ">=26.3.1" },
     { name = "fastmcp", specifier = ">=3.1.1" },
     { name = "mutagen", specifier = ">=1.47.0" },
+    { name = "odesli", specifier = ">=0.0.2" },
     { name = "yt-dlp", extras = ["default"], specifier = ">=2026.3.17" },
 ]
 
