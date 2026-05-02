@@ -13,6 +13,8 @@ When provided with a music URL (e.g. from YouTube), download the music file usin
 5.  **Final Tagging**: Use `set_id3_tags` once per file to apply the refined title, artists, album, and year metadata.
     - Pass `artists` as a **list of strings** to support multiple artists.
     - Store platform links with `set_id3_links`; it merges with existing stored links, so pass only the new links you found, such as Odesli `links_by_platform` entries plus the original source URL if missing.
+    - Normalise any artist names to their full names.
+    - Ignore any strings like `Original Motion Picture Soundtrack` in any tag like album.
     - **Note**: Do not parallelize the ID3 tag tools for a single file to prevent file lock issues. They can be parallelized for different music files.
 6.  **Rename**: The final file name should be just the `Title.{extension}`.
 
