@@ -9,9 +9,9 @@ When provided with a music URL (e.g. from YouTube), download the music file usin
 1.  **Inspect**: Use `get_music_metadata` (for single tracks) or `get_playlist_metadata` (for playlists) to retrieve the title, uploader, and structure of the content.
 2.  **Download & Convert**: Use the `download_music` tool. This tool autonomously handles the download of the best audio format, manual conversion to high-quality MP3 (320kbps) via FFmpeg, and initial tagging (Title, Uploader as Artist, and Thumbnail).
 3.  **Refine Metadata**: Use a web search to find the official Artist(s), Album, and Year.
-4.  **Final Tagging**: Use the ID3 tagging tools to apply the refined metadata.
-    - **Note**: `set_id3_artist` now accepts a **list of strings** to support multiple artists.
-    - Always add the `link` tag (using `set_id3_links`) to store the original URL.
+4.  **Final Tagging**: Use `set_id3_tags` once per file to apply the refined title, artists, album, and year metadata.
+    - Pass `artists` as a **list of strings** to support multiple artists.
+    - Always add the original URL with `set_id3_links`; it merges with existing stored links, so only pass the new platform key/value (for example, `{"youtube": "<url>"}`) instead of rebuilding the whole Links dictionary.
     - **Note**: Do not parallelize the ID3 tag tools for a single file to prevent file lock issues. They can be parallelized for different music files.
 5.  **Rename**: The final file name should be just the `Title.{extension}`.
 
