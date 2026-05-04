@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 from odesli.Odesli import Odesli
@@ -5,7 +6,9 @@ from requests import RequestException
 
 from personal_mcp import MCP_SERVER
 
-ODESLI_CLIENT = Odesli()
+_odesli_api_key = os.environ.get("ODESLI_API_KEY")
+
+ODESLI_CLIENT = Odesli(key=_odesli_api_key)
 
 
 def _entity_to_dict(entity: Any) -> dict[str, Any] | None:
