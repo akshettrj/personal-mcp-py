@@ -10,14 +10,14 @@ When provided with a music URL (e.g. from YouTube), download the music file usin
 2.  **Download & Convert**: Use the `download_music` tool. This tool autonomously handles the download of the best audio format, manual conversion to high-quality MP3 (320kbps) via FFmpeg, and initial tagging (Title, Uploader as Artist, and Thumbnail).
 3.  **Resolve Links**: Use `odesli_get_by_url` for each track URL to retrieve the song.link/album.link page and cross-platform links. Use `odesli_get_by_id` when you already have a platform entity ID instead of a URL.
 4.  **Refine Metadata**: Prefer the Odesli requested entity and provider entities for title, artist, artwork, and platform links. If Odesli does not find the track, returns sparse/inaccurate tags, or the recording is hard to disambiguate, use web search tools to find the best available official Artist(s), Album, and Year.
-5.  **Final Tagging**: Use `set_id3_tags` once per file to apply the refined title, artists, album, and year metadata.
+5.  **Final Tagging**: Use `set_id3_tags` once per file to apply the refined title, artists, album (and track number), and year metadata.
     - Pass `artists` as a **list of strings** to support multiple artists.
     - Store platform links with `set_id3_links`; it merges with existing stored links, so pass only the new links you found, such as Odesli `links_by_platform` entries plus the original source URL if missing.
     - Normalise any artist names to their full names.
     - Ignore any strings like `Original Motion Picture Soundtrack` in any tag like album.
     - If any song has `Single/Unknown` as its album, then remove the value or replace it with any album name if it exists
     - **Note**: Do not parallelize the ID3 tag tools for a single file to prevent file lock issues. They can be parallelized for different music files.
-6.  **Rename**: The final file name should be just the `Title.{extension}`.
+6.  **Rename**: The final file name should be like `Title.{extension}`. It can still contain some extra information if absolute necessary (like \(Unplugged\)) and not redundant.
 
 ### Guidelines
 - **Playlists**: If a playlist URL is provided, use `get_playlist_metadata` first. Compare the entries with the files already present in your target directory and only download the missing ones (you can call `download_music` with `noplaylist=True` in a loop for each missing song).

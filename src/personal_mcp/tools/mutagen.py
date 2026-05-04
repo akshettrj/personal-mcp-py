@@ -2,7 +2,17 @@ import json
 from pathlib import Path
 
 from mutagen.flac import FLAC, Picture
-from mutagen.id3 import APIC, ID3, TALB, TDRC, TIT2, TPE1, TXXX, ID3NoHeaderError
+from mutagen.id3 import (
+    APIC,
+    ID3,
+    TALB,
+    TDRC,
+    TIT2,
+    TPE1,
+    TRCK,
+    TXXX,
+    ID3NoHeaderError,
+)
 
 from personal_mcp import MCP_SERVER
 
@@ -125,6 +135,17 @@ def _handle_year(tags: AudioTags, year: str | None):
         tags.setall("TDRC", [TDRC(encoding=3, text=year)])
 
 
+def _handle_track_number(tags: AudioTags, track_number: str | None):
+    if isinstance(tags, FLAC):
+        _set_flac_text(tags, "tracknumber", [track_number] if track_number else None)
+        return
+
+    if track_number is None or track_number == "":
+        tags.delall("TRCK")
+    else:
+        tags.setall("TRCK", [TRCK(encoding=3, text=track_number)])
+
+
 @MCP_SERVER.tool()
 def set_id3_tags(
     filepath: str,
@@ -132,6 +153,7 @@ def set_id3_tags(
     artists: list[str] | None,
     album: str | None,
     year: str | None,
+    track_number: str | None,
 ) -> str:
     """
     Sets the audio tags corresponding to the non-null given inputs
@@ -141,6 +163,7 @@ def set_id3_tags(
     - artists: TPE1 ID3 frame or FLAC artist field
     - album: TALB ID3 frame or FLAC album field
     - year: TDRC ID3 frame or FLAC date field
+    - track_number: TRCK ID3 frame or FLAC tracknumber field
 
     If any input is passed as null (or falsy value), then it will not
     be modified.
@@ -165,6 +188,10 @@ def set_id3_tags(
         modified_tags.append("year")
         _handle_year(tags, year)
 
+    if track_number:
+        modified_tags.append("track_number")
+        _handle_track_number(tags, track_number)
+
     _save_audio_tags(path, tags)
 
     return f"Modified Fields: {','.join(modified_tags)}"
@@ -177,6 +204,7 @@ def unset_id3_tags(
     artists: bool,
     album: bool,
     year: bool,
+    track_number: bool,
 ) -> str:
     """
     Deletes the tags which are passed as `true` in the inputs for a local MP3 or FLAC file.
@@ -185,6 +213,7 @@ def unset_id3_tags(
     - artists: TPE1 ID3 frame or FLAC artist field
     - album: TALB ID3 frame or FLAC album field
     - year: TDRC ID3 frame or FLAC date field
+    - track_number: TRCK ID3 frame or FLAC tracknumber field
     """
     path, tags = _load_audio_tags(filepath)
 
@@ -205,6 +234,10 @@ def unset_id3_tags(
     if year:
         deleted_tags.append("year")
         _handle_year(tags, None)
+
+    if track_number:
+        deleted_tags.append("track_number")
+        _handle_track_number(tags, None)
 
     _save_audio_tags(path, tags)
 
@@ -266,7 +299,7 @@ def set_id3_links(filepath: str, links: dict[str, str] | None) -> str:
 
 @MCP_SERVER.tool()
 def read_id3_tags(filepath: str) -> dict[str, str | list[str] | None]:
-    """Read common MP3 or FLAC fields and summarize title, artist, album, year, links, and artwork state."""
+    """Read common MP3 or FLAC fields and summarize title, artist, album, year, track number, links, and artwork state."""
     path, tags = _load_audio_tags(filepath)
 
     def _get_text(frame_id: str) -> list[str] | None:
@@ -302,6 +335,7 @@ def read_id3_tags(filepath: str) -> dict[str, str | list[str] | None]:
         "artist": _get_text("artist" if isinstance(tags, FLAC) else "TPE1"),
         "album": _first_text("album" if isinstance(tags, FLAC) else "TALB"),
         "year": _first_text("date" if isinstance(tags, FLAC) else "TDRC"),
+        "track_number": _first_text("tracknumber" if isinstance(tags, FLAC) else "TRCK"),
         "links": links,
         "has_thumbnail": (
             "yes"
