@@ -194,7 +194,7 @@ def set_id3_tags(
 
     _save_audio_tags(path, tags)
 
-    return f"Modified Fields: {','.join(modified_tags)}"
+    return f"modified {','.join(modified_tags)}"
 
 
 @MCP_SERVER.tool()
@@ -241,7 +241,7 @@ def unset_id3_tags(
 
     _save_audio_tags(path, tags)
 
-    return f"Deleted Fields: {','.join(deleted_tags)}"
+    return f"deleted {','.join(deleted_tags)}"
 
 
 @MCP_SERVER.tool()
@@ -268,7 +268,7 @@ def set_id3_thumbnail(
         tags.clear_pictures()
         tags.add_picture(picture)
         _save_audio_tags(path, tags)
-        return f"Embedded thumbnail from {cover_path} into {path}"
+        return "Successful"
 
     tags.delall("APIC")
     tags.add(
@@ -281,7 +281,7 @@ def set_id3_thumbnail(
         )
     )
     _save_audio_tags(path, tags)
-    return f"Embedded thumbnail from {cover_path} into {path}"
+    return "Successful"
 
 
 @MCP_SERVER.tool()
@@ -294,7 +294,7 @@ def set_id3_links(filepath: str, links: dict[str, str] | None) -> str:
     merged_links = None if links is None else {**_get_links(tags), **links}
     _set_links(tags, merged_links)
     _save_audio_tags(path, tags)
-    return f"Updated links tag for {path}"
+    return f"Successful"
 
 
 @MCP_SERVER.tool()
