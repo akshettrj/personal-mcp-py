@@ -46,7 +46,12 @@
     pythonSets = forAllSystems (
       system: let
         pkgs = nixpkgs.legacyPackages.${system};
-        python = pkgs.python3;
+        # Pinned to the minor release uv.lock declares (`requires-python =
+        # "==3.13.*"`); uv2nix asserts the interpreter satisfies it. `pkgs.python3`
+        # tracks whatever nixpkgs defaults to, so it breaks every consumer of this
+        # flake as soon as that default crosses a minor release. Bump this together
+        # with pyproject.toml and uv.lock.
+        python = pkgs.python313;
       in
         (pkgs.callPackage pyproject-nix.build.packages {
           inherit python;
